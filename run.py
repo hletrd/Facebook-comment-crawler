@@ -42,12 +42,12 @@ while True:
 						c.execute("INSERT INTO comments (date, name, userid, message, id, type, target_id, target_url, url, title, description) VALUES (?,?,?,?,?,?,?,?,?,?,?);", (i['created_time'], i['from']['name'], i['from']['id'], i['message'], i['id'], i['attachment']['type'], i['attachment']['target']['id'], i['attachment']['target']['url'], i['attachment']['url'], i['attachment']['title'], i['attachment']['description']))
 				else:
 					c.execute("INSERT INTO comments (date, name, userid, message, id, type, media_image_src, media_image_width, media_image_height, target_id, target_url, url) VALUES (?,?,?,?,?,?,?,?,?,?,?,?);", (i['created_time'], i['from']['name'], i['from']['id'], i['message'], i['id'], i['attachment']['type'], i['attachment']['media']['image']['src'], i['attachment']['media']['image']['width'], i['attachment']['media']['image']['height'], i['attachment']['target']['id'], i['attachment']['target']['url'], i['attachment']['url']))
+			else:
+				c.execute("INSERT INTO comments (date, name, userid, message, id) VALUES (?,?,?,?,?);", (i['created_time'], i['from']['name'], i['from']['id'], i['message'], i['id']))
+		date_tmp = i['created_time']
 		except:
 			print(i)
 			raise
-		else:
-			c.execute("INSERT INTO comments (date, name, userid, message, id) VALUES (?,?,?,?,?);", (i['created_time'], i['from']['name'], i['from']['id'], i['message'], i['id']))
-		date_tmp = i['created_time']
 	dbc.commit()
 	sys.stderr.write('Fetched ' + str(cnt*100) + ' comments - ' + date_tmp + '\n')
 	url = data['paging']['next']
