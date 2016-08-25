@@ -2,10 +2,11 @@ import requests
 import config
 import sqlite3
 import sys
+import json
 
 size = 200
 
-r = requests.get('https://graph.facebook.com/v2.7/' + config.userid + '_' + config.postid + '/comments?access_token=' + config.access_token + '&__mref=message_bubble&limit=' + str(size) + '&fields=message,id,from,created_time,attachment')
+r = requests.get('https://graph.facebook.com/v2.7/' + config.userid + '_' + config.postid + '/comments?access_token=' + config.access_token + '&__mref=message_bubble&limit=' + str(size) + '&fields=message,id,from,created_time,attachment,likes')
 data = r.json()
 url = data['paging']['next']
 dbc = sqlite3.connect(config.db)
@@ -13,7 +14,7 @@ dbc.text_factory = str
 c = dbc.cursor()
 try:
 	sys.stderr.write('Creating table\n')
-	c.execute("CREATE TABLE comments(date TEXT, name TEXT, userid TEXT, message TEXT, id TEXT, type TEXT, media_image_src TEXT, media_image_width TEXT, media_image_height TEXT, target_id TEXT, target_url TEXT, url TEXT, title TEXT, description TEXT);")
+	c.execute("CREATE TABLE comments(date TEXT, name TEXT, userid TEXT, message TEXT, id TEXT, type TEXT, media_image_src TEXT, media_image_width TEXT, media_image_height TEXT, target_id TEXT, target_url TEXT, url TEXT, title TEXT, description TEXT, likes TEXT);")
 except:
 	sys.stderr.write('Table exists\n')
 dbc.commit()
@@ -25,6 +26,9 @@ while True:
 	data = r.json()
 	date_tmp = ''
 	for i in data['data']:
+		if not 'likes' in i:
+			i['likes'] = {'data': []}
+		likes = json.dumps(i['likes']['data'])
 		try:
 			if 'attachment' in i:
 				if not 'target' in i['attachment']:
@@ -39,13 +43,13 @@ while True:
 					i['attachment']['title'] = ''
 				if i['attachment']['type'] == 'share':
 					if 'media' in i['attachment']:
-						c.execute("INSERT INTO comments (date, name, userid, message, id, type, media_image_src, media_image_width, media_image_height, target_id, target_url, url, title, description) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?);", (i['created_time'], i['from']['name'], i['from']['id'], i['message'], i['id'], i['attachment']['type'], i['attachment']['media']['image']['src'], i['attachment']['media']['image']['width'], i['attachment']['media']['image']['height'], i['attachment']['target']['id'], i['attachment']['target']['url'], i['attachment']['url'], i['attachment']['title'], i['attachment']['description']))
+						c.execute("INSERT INTO comments (date, name, userid, message, id, type, media_image_src, media_image_width, media_image_height, target_id, target_url, url, title, description, likes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);", (i['created_time'], i['from']['name'], i['from']['id'], i['message'], i['id'], i['attachment']['type'], i['attachment']['media']['image']['src'], i['attachment']['media']['image']['width'], i['attachment']['media']['image']['height'], i['attachment']['target']['id'], i['attachment']['target']['url'], i['attachment']['url'], i['attachment']['title'], i['attachment']['description'], likes))
 					else:
-						c.execute("INSERT INTO comments (date, name, userid, message, id, type, target_id, target_url, url, title, description) VALUES (?,?,?,?,?,?,?,?,?,?,?);", (i['created_time'], i['from']['name'], i['from']['id'], i['message'], i['id'], i['attachment']['type'], i['attachment']['target']['id'], i['attachment']['target']['url'], i['attachment']['url'], i['attachment']['title'], i['attachment']['description']))
+						c.execute("INSERT INTO comments (date, name, userid, message, id, type, target_id, target_url, url, title, description, likes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?);", (i['created_time'], i['from']['name'], i['from']['id'], i['message'], i['id'], i['attachment']['type'], i['attachment']['target']['id'], i['attachment']['target']['url'], i['attachment']['url'], i['attachment']['title'], i['attachment']['description'], likes))
 				else:
-					c.execute("INSERT INTO comments (date, name, userid, message, id, type, media_image_src, media_image_width, media_image_height, target_id, target_url, url) VALUES (?,?,?,?,?,?,?,?,?,?,?,?);", (i['created_time'], i['from']['name'], i['from']['id'], i['message'], i['id'], i['attachment']['type'], i['attachment']['media']['image']['src'], i['attachment']['media']['image']['width'], i['attachment']['media']['image']['height'], i['attachment']['target']['id'], i['attachment']['target']['url'], i['attachment']['url']))
+					c.execute("INSERT INTO comments (date, name, userid, message, id, type, media_image_src, media_image_width, media_image_height, target_id, target_url, url,likes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?);", (i['created_time'], i['from']['name'], i['from']['id'], i['message'], i['id'], i['attachment']['type'], i['attachment']['media']['image']['src'], i['attachment']['media']['image']['width'], i['attachment']['media']['image']['height'], i['attachment']['target']['id'], i['attachment']['target']['url'], i['attachment']['url'], likes))
 			else:
-				c.execute("INSERT INTO comments (date, name, userid, message, id) VALUES (?,?,?,?,?);", (i['created_time'], i['from']['name'], i['from']['id'], i['message'], i['id']))
+				c.execute("INSERT INTO comments (date, name, userid, message, id, likes) VALUES (?,?,?,?,?,?);", (i['created_time'], i['from']['name'], i['from']['id'], i['message'], i['id'], likes))
 		except:
 			print(i)
 			raise
